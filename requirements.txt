@@ -1,0 +1,7 @@
+brian2
+brian2hears
+numpy
+scipy
+mne
+librosa
+pybids
