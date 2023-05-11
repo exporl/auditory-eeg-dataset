@@ -4,4 +4,5 @@ numpy
 scipy
 mne
 librosa
+pandas
 pybids

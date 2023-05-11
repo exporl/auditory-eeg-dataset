@@ -248,6 +248,7 @@ class RegressionDataGenerator:
         window_length= None,
         high_pass_freq= None,
         low_pass_freq= None,
+        return_filenames=False,
     ):
         """Initialize the DataGenerator.
 
@@ -259,6 +260,7 @@ class RegressionDataGenerator:
             Length of the decision window.
         """
         self.files = self.group_recordings(files)
+        self.return_filenames = return_filenames
         self.high_pass_freq = high_pass_freq
         self.low_pass_freq = low_pass_freq
 
@@ -325,7 +327,10 @@ class RegressionDataGenerator:
             data += [np.load(feature).astype(np.float32)]
 
         data = self.prepare_data(data)
-        return tuple(tf.constant(x) for x in data)
+        if self.return_filenames:
+            return self.files[recording_index], tuple(tf.constant(x) for x in data)
+        else:
+            return tuple(tf.constant(x) for x in data)
 
 
     def __call__(self):

@@ -1,4 +1,5 @@
 import gzip
+import json
 import logging
 import os
 import time
@@ -63,7 +64,6 @@ if __name__ == "__main__":
 
     # GENERAL PATHS #
     #################
-    config_file =
     root_dir = config['dataset_folder']
     output_dir = os.path.join(config['dataset_folder'], config['derivatives_folder'], config['preprocessed_eeg_folder'])
     stimuli_dir = os.path.join(config['dataset_folder'], config['derivatives_folder'], config['preprocessed_stimuli_folder'])
