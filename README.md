@@ -32,19 +32,26 @@ source venv/bin/activate # Optional
 python3 -m install requirements.txt
 ```
 
-## 2. [Download the data](https://doi.org/10.48804/K3VSND) or [Easy download](https://kuleuven-my.sharepoint.com/:f:/g/personal/lies_bollens_kuleuven_be/EulH76nkcwxIuK--XJhLxKQBaX8_GgAX-rTKK7mskzmAZA?e=N6M5Ll)
+## 2. [Download (parts of the) data](download_code/README.md) 
 
-When you want to directly start from the preprocessed data, which is the output you will get when running the file 
-[preprocessing_code/examples/auditory_eeg_dataset.py](preprocessing_code/examples/auditory_eeg_dataset.py), 
-you can download the **derivatives** folder, which contains all the necessary files to run the technical validation. 
+The official dataset is hosted on the [KU Leuven RDR website](https://doi.org/10.48804/K3VSND) and is accessible through DOI ([https://doi.org/10.48804/K3VSND](https://doi.org/10.48804/K3VSND)).
 
-When you want to download the raw data and preprocess it yourself, you can download the whole dataset.
+However, due to the dataset size/structure and the limitations of the UI of the KU Leuven RDR website, we also provide a [direct download link for the entire dataset in `.zip` format](https://rdr.kuleuven.be/api/access/dataset/:persistentId/?persistentId=doi:10.48804/K3VSND), and a [tool to download (subsets of) the dataset robustly](download_code/README.md).
+For more information about the tool, see [download_code/README.md](download_code/README.md).
+
+When you want to directly start from the preprocessed data (which is the output you will get when running the file 
+[preprocessing_code/examples/auditory_eeg_dataset.py](preprocessing_code/examples/auditory_eeg_dataset.py)), 
+you can download the **derivatives** folder. This folder contains all the necessary files to run the technical validation. This can also be downloaded using [the download tool](download_code/README.md) as follows:
+
+```bash
+python3 download_code/download_script.py --subset preprocessed /path/to/local/folder
+```
 
 
-## 3. Adjust the `config.json` accordingly
+## 3. Adjust the [config.json](config.json) accordingly
 
-The `config.json` defining the folder names and structure for the data and derivatives folder.
-Adjust `dataset_folder` in the `config.json` file from `null` to the absolute path to the folder containing all data.
+The [config.json](config.json) defining the folder names and structure for the data and derivatives folder.
+Adjust `dataset_folder` in the [config.json](config.json) file from `null` to the absolute path to the folder containing all data.
   
 
 OK, you should be all setup now!
