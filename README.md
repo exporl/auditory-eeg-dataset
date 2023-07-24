@@ -36,8 +36,10 @@ python3 -m install requirements.txt
 
 The official dataset is hosted on the [KU Leuven RDR website](https://doi.org/10.48804/K3VSND) and is accessible through DOI ([https://doi.org/10.48804/K3VSND](https://doi.org/10.48804/K3VSND)).
 
-However, due to the dataset size/structure and the limitations of the UI of the KU Leuven RDR website, we also provide a [direct download link for the entire dataset in `.zip` format](https://rdr.kuleuven.be/api/access/dataset/:persistentId/?persistentId=doi:10.48804/K3VSND), and a [tool to download (subsets of) the dataset robustly](download_code/README.md).
-For more information about the tool, see [download_code/README.md](download_code/README.md).
+However, due to the dataset size/structure and the limitations of the UI of the KU Leuven RDR website, we also provide a [direct download link for the entire dataset in `.zip` format](https://rdr.kuleuven.be/api/access/dataset/:persistentId/?persistentId=doi:10.48804/K3VSND), a [onedrive repository containing then entire dataset split up into smaller files](https://kuleuven-my.sharepoint.com/:f:/g/personal/lies_bollens_kuleuven_be/EulH76nkcwxIuK--XJhLxKQBaX8_GgAX-rTKK7mskzmAZA?e=N6M5Ll) and a [tool to download (subsets of) the dataset robustly](download_code/README.md).
+For more information about the tool, see [download_code/README.md](download_code/README.md). 
+
+Due to privacy concerns, not all data is publically available. Users requesting access to these files should send a mail to the authors (lies.bollens@kuleuven.be ; bernd.accou@kuleuven.be) , stating what they want to use the data for. Access will be granted to non-commercial users, complying to the CC-BY-NC-4.0 licence
 
 When you want to directly start from the preprocessed data (which is the output you will get when running the file 
 [preprocessing_code/examples/auditory_eeg_dataset.py](preprocessing_code/examples/auditory_eeg_dataset.py)), 
