@@ -1,0 +1,89 @@
+dataloaders:
+  - name: sparrkulee_eeg_loader
+    callable: GlobLoader
+    glob_patterns:
+      - {{ dataset_folder }}/sub-*/*/eeg/*_task-listeningActive_*.bdf*
+    key: data_path
+
+pipelines:
+  - callable: DefaultPipeline
+    data_from: sparrkulee_eeg_loader
+    steps:
+      - callable: LinkStimulusToBrainResponse
+        stimulus_data:
+          callable: DefaultPipeline
+          steps:
+            - callable: LoadStimuli
+              load_fn:
+                callable: temp_stimulus_load_fn
+                is_pointer: true
+            - callable: GammatoneEnvelope
+            - callable: ResamplePoly
+              target_frequency: 1024
+              data_key: envelope_data
+              sampling_frequency_key: stimulus_sr
+            - callable: DefaultSave
+              root_dir: {{ dataset_folder }}/{{ derivatives_folder}}/{{ preprocessed_stimuli_dir }}
+              to_save:
+                envelope: envelope_data
+            - callable: DefaultSave
+              root_dir: {{ dataset_folder }}/{{ derivatives_folder}}/{{ preprocessed_stimuli_dir }}
+              overwrite: false
+        grouper:
+          callable: BIDSStimulusGrouper
+          bids_root: {{ dataset_folder }}
+          mapping:
+            stim_file: stimulus_path
+            trigger_file: trigger_path
+          subfolders:
+            - stimuli
+            - eeg
+      - callable: LoadEEGNumpy
+        unit_multiplier: 0.000001
+        channels_to_select:
+        {% for channel in range(64) %}
+          - {{ channel }}
+        {% endfor %}
+
+      - callable: SosFiltFilt
+        filter_:
+          callable: scipy.signal.butter
+          N: 1
+          Wn: 0.5
+          btype: highpass
+          fs: 1024
+          output: sos
+        emulate_matlab: true
+        axis: 1
+      - callable: InterpolateArtifacts
+      - callable: AlignPeriodicBlockTriggers
+        brain_trigger_processing_fn:
+          callable: biosemi_trigger_processing_fn
+          is_pointer: true
+      - callable: SplitEpochs
+      - callable: ArtifactRemovalMWF
+      - callable: CommonAverageRereference
+      - callable: ResamplePoly
+        target_frequency: 64
+        axis: 1
+      - callable: DefaultSave
+        root_dir: {{ dataset_folder }}/{{ derivatives_folder}}/{{ preprocessed_eeg_dir }}
+        to_save:
+          eeg: data
+        overwrite: false
+        filename_fn:
+          callable: bids_filename_fn
+          is_pointer: true
+        clear_output: true
+
+config:
+  parser:
+    extra_paths:
+      - {{ __filedir__ }}/sparrKULee.py
+  logging:
+    callable: sparrkulee_logging
+    log_path: {{ __filedir__ }}/sparrKULee_{datetime}.log
+
+
+
+

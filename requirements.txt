@@ -6,3 +6,5 @@ mne
 librosa
 pandas
 pybids
+seaborn
+brain_pipe

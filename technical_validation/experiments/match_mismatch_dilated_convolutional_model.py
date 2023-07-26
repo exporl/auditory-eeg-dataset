@@ -3,6 +3,8 @@ import glob
 import json
 import logging
 import os
+os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
+os.environ['TF_XLA_FLAGS'] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
 import tensorflow as tf
 import sys
 

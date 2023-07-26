@@ -8,16 +8,17 @@ import mne
 import numpy as np
 import pandas as pd
 import scipy.stats
+import seaborn as sns
 
 # generate plots from all the different results and plsave them in the figures folder
 
 # load the results
 base_results_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'experiments')
 os.makedirs(os.path.join(base_results_folder, 'figures'), exist_ok=True)
-plot_dilation = False
+plot_dilation = True
 plot_linear_backward = True
-plot_linear_forward = False
-plot_vlaai = False
+plot_linear_forward = True
+plot_vlaai = True
 
 freq_bands = {
     'Delta [0.5-4]': (0.5, 4.0),
@@ -83,9 +84,9 @@ if plot_linear_backward:
             highpass = data['highpass'] if data['highpass'] is not None else 0.5
             lowpass = data['lowpass'] if data['lowpass'] is not None else 32.0
 
-            all_results.append([data['subject'], stim, score, highpass, lowpass, percentile, score > percentile])
+            all_results.append([data['subject'], stim, score, highpass, lowpass, percentile, score > percentile, data['null_distr'][index]])
 
-    df = pd.DataFrame(all_results, columns=['subject', 'stim', 'score', 'highpass', 'lowpass', 'percentile', 'significant'])
+    df = pd.DataFrame(all_results, columns=['subject', 'stim', 'score', 'highpass', 'lowpass', 'percentile', 'significant', 'null_distr'])
 
     print('Confirming that we found neural tracking for each subject')
     nb_subjects = len(pd.unique(df['subject']))
@@ -108,16 +109,27 @@ if plot_linear_backward:
     # plot the results
     ## General frequency plot
     values_for_boxplot = []
+    signficance_level = []
     names_for_boxplot = []
     for band_name, (highpass, lowpass) in freq_bands.items():
 
         selected_df = df[(df['highpass'] == highpass) & (df['lowpass'] == lowpass)]
-        values_for_boxplot.append(selected_df['score'].tolist())
+        values_for_boxplot.append(selected_df.groupby('subject').agg('mean')['score'].tolist())
+        signficance_level.append(np.percentile(selected_df['null_distr'].tolist(), 95))
+
     plt.figure(figsize=(8, 5))
-    plt.boxplot(values_for_boxplot, labels=freq_bands.keys())
+    # plt.boxplot(values_for_boxplot, labels=freq_bands.keys())
+    temp_df = pd.DataFrame(values_for_boxplot, index=freq_bands.keys(), columns=range(85)).T
+    sns.violinplot(data=temp_df)
+
+    xs = [np.linspace(x - 0.5, x + 0.5, 200) for x in range(5)]
+    ys = [[signficance_level[i]]*200 for i in range(5)]
+
+    plt.plot(np.reshape(xs, (-1,)), np.reshape(ys, (-1,)), '--', color='black')
     plt.ylabel('Pearson correlation')
     plt.xlabel('Frequency band')
     #plt.grid(True)
+    plt.xlim(-0.5, len(values_for_boxplot)-0.5)
     plt.title('Linear decoder performance across frequency bands')
     # plt.show()
     plt.savefig(os.path.join(base_results_folder, 'figures', "boxplot_linear_backward_frequency.pdf"))
@@ -134,23 +146,23 @@ if plot_linear_backward:
             number += int(split[2])
         return number
 
-
+    fig, (ax0, ax1) = plt.subplots(1,2, width_ratios=[0.2, 0.8], figsize=(15,6), sharey=True)
 
     for stimulus in sorted(pd.unique(df['stim']), key=sort_key_fn):
         selected_df = df[(df['stim'] == stimulus) &(df['highpass'] == 0.5) & (df['lowpass'] == 4.0)]
-        values_for_boxplot.append(selected_df['score'].tolist())
+        values_for_boxplot.append(selected_df.groupby('subject').agg('mean')['score'].tolist())
         names_for_boxplot.append(stimulus + ' ({})'.format(len(selected_df)))
-    plt.figure(figsize=(11,6))
-    plt.boxplot(values_for_boxplot, labels=names_for_boxplot)
-    plt.ylabel('Pearson correlation')
-    plt.xlabel('Stimulus (Number of recordings)')
+    # plt.figure(figsize=(11,6))
+    ax1.boxplot(values_for_boxplot, labels=names_for_boxplot)
+    #ax1.set_ylabel('Pearson correlation')
+    # ax1.set_xlabel('Stimulus (Number of recordings)')
     plt.xticks(rotation=90)
 
     # plt.grid(True)
-    plt.title('Linear decoder performance across stimuli')
-    plt.tight_layout()
-    #plt.show()
-    plt.savefig(os.path.join(base_results_folder, 'figures', "boxplot_linear_backward_stimuli.pdf"))
+    ax1.set_title('Across stimuli')
+    # plt.tight_layout()
+    # plt.show()
+    # plt.savefig(os.path.join(base_results_folder, 'figures', "boxplot_linear_backward_stimuli.pdf"))
     # plt.close()
 
 
@@ -161,25 +173,31 @@ if plot_linear_backward:
         'Audiobook': df['stim'].str.startswith('audiobook_'),
         'Podcast': df['stim'].str.startswith('podcast_'),
     }
-    test_data  = []
+    test_data = []
     for stimulus_type, stimulus_selector in stim_type_selectors.items():
         selected_df = df[(stimulus_selector) &(df['highpass'] == 0.5) & (df['lowpass'] == 4.0) & (~(df['stim'].str.endswith('artefact'))) & (~(df['stim'].str.endswith('shifted'))) & (~(df['stim'].str.endswith('audiobook_1_1')))& (~(df['stim'].str.endswith('audiobook_1_2')))]
-        values_for_boxplot.append(selected_df['score'].tolist())
+        values_for_boxplot.append(selected_df.groupby('subject').agg('mean')['score'].tolist())
         names_for_boxplot.append(stimulus_type + ' ({})'.format(len(selected_df)))
         test_data += [selected_df['score'].tolist()]
 
     print("MannWhitneyU test: {}, medians: {}, {}".format(scipy.stats.mannwhitneyu(test_data[0], test_data[1]),np.median(test_data[0]), np.median(test_data[1])))
-    plt.figure()
-    plt.boxplot(values_for_boxplot, labels=names_for_boxplot)
-    plt.ylabel('Pearson correlation')
-    plt.xlabel('Stimulus type (Number of recordings)')
-    plt.xticks()
+    # plt.figure()
+    ax0.boxplot(values_for_boxplot, labels=names_for_boxplot)
+    ax0.set_ylabel('Pearson correlation')
+    # ax0.set_xlabel('\nStimulus type (Number of recordings)')
+    # plt.xticks()
 
     #plt.grid(True)
-    plt.title('Linear decoder performance across stimuli types')
+    ax0.set_title('Across stimuli types')
+    fig.suptitle('Linear decoder performance')
+    fig.supxlabel('Stimulus [type] (Number of recordings)')
+
     plt.tight_layout()
-    #plt.show()
-    plt.savefig(os.path.join(base_results_folder, 'figures', "boxplot_linear_backward_stimulus_type.pdf"))
+
+    # plt.show()
+    # plt.savefig(os.path.join(base_results_folder, 'figures', "boxplot_linear_backward_stimulus_type.pdf"))
+    plt.savefig(os.path.join(base_results_folder, 'figures', "boxplot_linear_backward_stimulus_combined.pdf"))
+
     # plt.close()
 
 
@@ -199,9 +217,9 @@ if plot_linear_forward:
             highpass = data['highpass'] if data['highpass'] is not None else 0.5
             lowpass = data['lowpass'] if data['lowpass'] is not None else 32.0
 
-            all_results.append([data['subject'], stim, score, null_distr, highpass, lowpass, percentile, score > percentile])
+            all_results.append([data['subject'], stim, score, null_distr, highpass, lowpass, percentile, score > percentile, data['null_distr'][index]])
 
-    df = pd.DataFrame(all_results, columns=['subject', 'stim', 'scores_per_channel', 'null_distr', 'highpass', 'lowpass', 'percentile', 'significant'])
+    df = pd.DataFrame(all_results, columns=['subject', 'stim', 'scores_per_channel', 'null_distr', 'highpass', 'lowpass', 'percentile', 'significant', 'null_distr'])
 
     montage = mne.channels.make_standard_montage('biosemi64')
     sfreq = 64
@@ -228,8 +246,9 @@ if plot_linear_forward:
         for index2, (band_name, (highpass, lowpass)) in enumerate(freq_bands.items()):
             ax = axes[index][index2]
             selected_df = df[(df['highpass'] == highpass) & (df['lowpass'] == lowpass) & (selector)]
-            mean_scores = np.mean(selected_df['scores_per_channel'].tolist(), axis=0)
-            percentile = np.percentile(np.concatenate(selected_df['null_distr'].tolist(), axis=0), 95, axis=0)
+            scores_per_subject = selected_df.groupby('subject').agg({'scores_per_channel': lambda x: np.mean(np.stack(x,axis=1), axis=1)})
+            mean_scores = np.mean(scores_per_subject.to_numpy(), axis=0).tolist()[0]
+            # percentile = np.percentile(np.concatenate(selected_df['null_distr'].tolist(), axis=0), 95, axis=0)
             # plot the topoplot
             im , cn = mne.viz.plot_topomap(mean_scores, pos=info, axes=ax ,show=False, cmap='Reds', vlim=(min_coef,max_coef))
             mne.viz.tight_layout()
