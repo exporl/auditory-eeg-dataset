@@ -1,6 +1,6 @@
 Code to preprocess the SparrKULee dataset
 =========================================
-This is the codebase to preprocess and validate the [SparrKULee](https://doi.org/10.48804/K3VSND).
+This is the codebase to preprocess and validate the [SparrKULee](https://doi.org/10.48804/K3VSND) dataset.
 This codebase consist of two main parts: 
 1) preprocessing code, to preprocess the raw data into an easily usable format 
 2) technical validation code, to validate the technical quality of the dataset. 

@@ -234,7 +234,6 @@ def run_preprocessing_pipeline(
     #########
     # PATHS #
     #########
-    preprocessed_eeg_dir = os.path.join(preprocessed_eeg_dir, "output")
     os.makedirs(preprocessed_eeg_dir, exist_ok=True)
     os.makedirs(preprocessed_stimuli_dir, exist_ok=True)
 
