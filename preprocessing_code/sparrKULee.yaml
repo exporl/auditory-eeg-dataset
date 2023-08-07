@@ -19,13 +19,18 @@ pipelines:
                 is_pointer: true
             - callable: GammatoneEnvelope
             - callable: ResamplePoly
-              target_frequency: 1024
+              target_frequency: 64
               data_key: envelope_data
               sampling_frequency_key: stimulus_sr
+#            - callable: LibrosaMelSpectrogram
+#              power_factor: 0.6
+#              librosa_extra_kwargs:
+#                - callable: SparKULeeSpectrogramKwargs
             - callable: DefaultSave
               root_dir: {{ dataset_folder }}/{{ derivatives_folder}}/{{ preprocessed_stimuli_dir }}
               to_save:
                 envelope: envelope_data
+#                spectrogram: spectrogram_data
             - callable: DefaultSave
               root_dir: {{ dataset_folder }}/{{ derivatives_folder}}/{{ preprocessed_stimuli_dir }}
               overwrite: false

@@ -7,4 +7,4 @@ librosa
 pandas
 pybids
 seaborn
-brain_pipe
+brain_pipe>=0.0.2

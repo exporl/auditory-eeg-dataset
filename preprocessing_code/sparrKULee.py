@@ -10,6 +10,8 @@ from typing import Any, Dict, Sequence
 import librosa
 import numpy as np
 import scipy.signal
+import scipy.signal.windows
+
 from brain_pipe.dataloaders.path import GlobLoader
 from brain_pipe.pipeline.default import DefaultPipeline
 from brain_pipe.preprocessing.brain.artifact import (
@@ -31,6 +33,7 @@ from brain_pipe.preprocessing.brain.trigger import (
 )
 from brain_pipe.preprocessing.filter import SosFiltFilt
 from brain_pipe.preprocessing.resample import ResamplePoly
+from brain_pipe.preprocessing.stimulus.audio.spectrogram import LibrosaMelSpectrogram
 from brain_pipe.preprocessing.stimulus.audio.envelope import GammatoneEnvelope
 from brain_pipe.preprocessing.stimulus.load import LoadStimuli
 from brain_pipe.runner.default import DefaultRunner
@@ -205,6 +208,87 @@ def bids_filename_fn(data_dict, feature_name, set_name=None):
     return os.path.join(subject, session, filename + ".npy")
 
 
+class SparrKULeeSpectrogramKwargs:
+    """Default function to generate the kwargs for the librosa spectrogram."""
+
+    def __init__(
+        self,
+        stimulus_sr_key="stimulus_sr",
+        target_fs=64,
+        hop_length=None,
+        win_length_sec=0.025,
+        n_fft=None,
+        window_fn=None,
+        n_mels=28,
+        fmin=-4.2735,
+        fmax=5444,
+        power=1.0,
+        center=False,
+        norm=None,
+        htk=True,
+    ):
+        self.stimulus_sr_key = stimulus_sr_key
+        self.target_fs = target_fs
+        self.hop_length = hop_length
+        self.win_length_sec = win_length_sec
+        self.n_fft = n_fft
+        self.window_fn = window_fn
+        if window_fn is None:
+            self.window_fn = scipy.signal.windows.hamming
+        self.n_mels = n_mels
+        self.fmin = fmin
+        self.fmax = fmax
+        self.power = power
+        self.center = center
+        self.norm = norm
+        self.htk = htk
+
+    def __call__(self, data_dict):
+        """Default function to generate the kwargs for the librosa spectrogram.
+
+        Parameters
+        ----------
+        data_dict: Dict[str, Any]
+            The data dict containing the data to save.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The kwargs for the librosa spectrogram.
+
+        Notes
+        -----
+        Code was based on the code for the 2023 Auditory EEG Challenge code:
+        https://github.com/exporl/auditory-eeg-challenge-2023-code/blob/main/
+        task1_match_mismatch/util/mel_spectrogram.py
+        """
+        fs = data_dict[self.stimulus_sr_key]
+        result = {
+            "fmin": self.fmin,
+            "fmax": self.fmax,
+            "n_mels": self.n_mels,
+            "power": self.power,
+            "center": self.center,
+            "norm": self.norm,
+            "htk": self.htk,
+        }
+
+        result["hop_length"] = self.hop_length
+        if self.hop_length is None:
+            result["hop_length"] = int((1 / self.target_fs) * fs)
+
+        result["win_length"] = self.win_length_sec
+        if self.win_length_sec is not None:
+            result["win_length"] = int(self.win_length_sec * fs)
+
+        result["n_fft"] = self.n_fft
+        if self.n_fft is None:
+            result["n_fft"] = int(2 ** np.ceil(np.log2(result["win_length"])))
+
+        result["window"] = self.window_fn(result["win_length"])
+        return result
+
+
 def run_preprocessing_pipeline(
         root_dir,
         preprocessed_stimuli_dir,
@@ -264,6 +348,8 @@ def run_preprocessing_pipeline(
             LoadStimuli(load_fn=temp_stimulus_load_fn),
             GammatoneEnvelope(),
             ResamplePoly(64, "envelope_data", "stimulus_sr"),
+            # Uncomment the next line to also use mel
+            # LibrosaMelSpectrogram(power_factor=0.6, SparrKULeeSpectrogramKwargs()),
             DefaultSave(
                 preprocessed_stimuli_dir,
                 to_save={'envelope': 'envelope_data'},
