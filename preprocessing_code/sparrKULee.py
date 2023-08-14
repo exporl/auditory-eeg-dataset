@@ -1,4 +1,4 @@
-"""Run the default preprocessing pipeline on soarrKULee."""
+"""Run the default preprocessing pipeline on sparrKULee."""
 import argparse
 import datetime
 import gzip
@@ -290,12 +290,12 @@ class SparrKULeeSpectrogramKwargs:
 
 
 def run_preprocessing_pipeline(
-        root_dir,
-        preprocessed_stimuli_dir,
-        preprocessed_eeg_dir,
-        nb_processes=-1,
-        overwrite=False,
-        log_path="sparrKULee.log",
+    root_dir,
+    preprocessed_stimuli_dir,
+    preprocessed_eeg_dir,
+    nb_processes=-1,
+    overwrite=False,
+    log_path="sparrKULee.log",
 ):
     """Construct and run the preprocessing on SparrKULee.
 
@@ -347,13 +347,19 @@ def run_preprocessing_pipeline(
         steps=[
             LoadStimuli(load_fn=temp_stimulus_load_fn),
             GammatoneEnvelope(),
+            LibrosaMelSpectrogram(
+                power_factor=0.6, librosa_kwargs=SparrKULeeSpectrogramKwargs()
+            ),
             ResamplePoly(64, "envelope_data", "stimulus_sr"),
-            # Uncomment the next line to also use mel
-            # LibrosaMelSpectrogram(power_factor=0.6, SparrKULeeSpectrogramKwargs()),
+            # Comment out the next line if you don't want to use mel
             DefaultSave(
                 preprocessed_stimuli_dir,
-                to_save={'envelope': 'envelope_data'},
-                overwrite=overwrite
+                to_save={
+                    "envelope": "envelope_data",
+                    # Comment out the next line if you don't want to use mel
+                    "mel": "spectrogram_data",
+                },
+                overwrite=overwrite,
             ),
             DefaultSave(preprocessed_stimuli_dir, overwrite=overwrite),
         ],
@@ -407,11 +413,16 @@ def run_preprocessing_pipeline(
         logging_config=lambda: None,
     ).run(
         [(data_loader, eeg_pipeline)],
-
     )
 
 
 if __name__ == "__main__":
+    # Code for the sparrKULee dataset
+    # (https://rdr.kuleuven.be/dataset.xhtml?persistentId=doi:10.48804/K3VSND)
+    #
+    # A slight adaption of this code can also be found in the spaRRKULee repository:
+    # https://github.com/exporl/auditory-eeg-dataset
+    # under preprocessing_code/sparrKULee.py
     # Load the config
     with open("config.json", "r") as f:
         config = json.load(f)
@@ -425,6 +436,7 @@ if __name__ == "__main__":
     preprocessed_eeg_folder = os.path.join(
         derivatives_folder, config["preprocessed_eeg_folder"]
     )
+    # Set the default log folder
     default_log_folder = os.path.dirname(os.path.abspath(__file__))
 
     # Parse arguments from the command line
@@ -434,7 +446,7 @@ if __name__ == "__main__":
         type=int,
         default=-1,
         help="Number of processes to use for the preprocessing. "
-             "The default is to use all available cores (-1).",
+        "The default is to use all available cores (-1).",
     )
     parser.add_argument(
         "--overwrite", action="store_true", help="Overwrite existing files"

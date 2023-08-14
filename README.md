@@ -68,7 +68,13 @@ Documentation for the brain_pipe package can be found [here](https://exporl.gith
 Example usage
 -------------
 
-There are multiple ways to run the preprocessing pipeline:
+There are multiple ways to run the preprocessing pipeline, specified below.
+
+**Warning:** the script and the YAML file will create both Mel spectrograms and envelope representations of the stimuli.
+If this is not desired, you can comment out the appropriate lines.
+
+**Make sure your [brain_pipe](brain_pipe) version is up to date (>= 0.0.3)!** 
+You can ensure this by running `pip3 install --upgrade brain_pipe` or `pip3 install --upgrade -r requirements.txt`.
 
 ### 1. Use the python script [preprocessing_code/sparrKULee.py](preprocessing_code/sparrKULee.py)
 

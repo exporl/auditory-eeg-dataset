@@ -18,19 +18,21 @@ pipelines:
                 callable: temp_stimulus_load_fn
                 is_pointer: true
             - callable: GammatoneEnvelope
+              # Uncomment if mel is not needed
+            - callable: LibrosaMelSpectrogram
+              power_factor: 0.6
+              librosa_kwargs:
+                callable: SparrKULeeSpectrogramKwargs
             - callable: ResamplePoly
               target_frequency: 64
               data_key: envelope_data
               sampling_frequency_key: stimulus_sr
-#            - callable: LibrosaMelSpectrogram
-#              power_factor: 0.6
-#              librosa_extra_kwargs:
-#                - callable: SparKULeeSpectrogramKwargs
             - callable: DefaultSave
               root_dir: {{ dataset_folder }}/{{ derivatives_folder}}/{{ preprocessed_stimuli_dir }}
               to_save:
                 envelope: envelope_data
-#                spectrogram: spectrogram_data
+                # Uncomment if mel is not needed
+                mel: spectrogram_data
             - callable: DefaultSave
               root_dir: {{ dataset_folder }}/{{ derivatives_folder}}/{{ preprocessed_stimuli_dir }}
               overwrite: false
@@ -44,7 +46,7 @@ pipelines:
             - stimuli
             - eeg
       - callable: LoadEEGNumpy
-        unit_multiplier: 0.000001
+        unit_multiplier: 1000000
         channels_to_select:
         {% for channel in range(64) %}
           - {{ channel }}
@@ -86,7 +88,6 @@ config:
     extra_paths:
       - {{ __filedir__ }}/sparrKULee.py
   logging:
-    callable: sparrkulee_logging
     log_path: {{ __filedir__ }}/sparrKULee_{datetime}.log
 
 
