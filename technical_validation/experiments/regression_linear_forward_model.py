@@ -182,17 +182,19 @@ if __name__ == "__main__":
     # alpha (8 - 14)
     # beta (14 - 30)
     # broadband (0.5 - 32)
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--highpass', type=float, default=None)
-    parser.add_argument('--lowpass', type=float, default=4)
+    parser = argparse.ArgumentParser(description='Train and evaluate a linear forward model. If no highpass or lowpass frequency is specified, the model will be trained and evaluated on the following frequency bands: delta (0.5 -4 ), theta (4 - 8), alpha (8 - 14), beta (14 - 30), broadband (0.5 - 32).')
+    parser.add_argument('--highpass', type=float, default=None, help="Highpass frequency for filtering the EEG data. If not specified, no highpass filtering will be applied.")
+    parser.add_argument('--lowpass', type=float, default=None, help="Lowpass frequency for filtering the EEG data. If not specified, no lowpass filtering will be applied.")
+
 
     args = parser.parse_args()
     highpass = args.highpass
     lowpass = args.lowpass
+    bands = []
+    if highpass is None and lowpass is None:
+        bands = [(None, 4), (4, 8), (8, 14), (14, 30), (None, None)]
 
-    for highpass, lowpass in [(None, 4), (4, 8), (8, 14), (14, 30), (None, None)]:
-
-
+    for highpass, lowpass in bands:
         numChannels = 64
         tmin = -np.round(0.1*64).astype(int) # -100 ms
         tmax = np.round(0.4*64).astype(int)  # 400 ms
