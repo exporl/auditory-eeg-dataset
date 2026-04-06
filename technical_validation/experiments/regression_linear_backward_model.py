@@ -1,19 +1,14 @@
 """Example experiment for a linear baseline method."""
 
-
-import sys
 import argparse
-
-
-import numpy as np
 import glob
 import json
-import logging
 import os
+
+import numpy as np
 import scipy.stats
 
-from technical_validation.util.dataset_generator import RegressionDataGenerator, create_tf_dataset
-
+from technical_validation.util.dataset_generator import RegressionDataGenerator
 
 
 def time_lag_matrix(input_, tmin, tmax):
@@ -109,7 +104,6 @@ def training_loop(subject, data_folder, features, highpass, lowpass, tmin, tmax,
     print(f"Training model for subject {subject}")
 
     train_files = [x for x in glob.glob(os.path.join(data_folder, "train_-_*")) if os.path.basename(x).split("_-_")[-1].split(".")[0] in features and subject in x]
-    train_files = [x for x in train_files if 'audiobook_15_' not in x]
     train_generator = RegressionDataGenerator(train_files, high_pass_freq=highpass, low_pass_freq=lowpass)
     all_data = [x for x in train_generator]
 
@@ -139,7 +133,6 @@ def training_loop(subject, data_folder, features, highpass, lowpass, tmin, tmax,
 
     # # evaluate the model on the test set
     test_files = [x for x in glob.glob(os.path.join(data_folder, "test_-_*")) if os.path.basename(x).split("_-_")[-1].split(".")[0] in features and subject in x]
-    test_files = [x for x in test_files if 'audiobook_15_' not in x]
     test_generator = RegressionDataGenerator(test_files, high_pass_freq=highpass, low_pass_freq=lowpass, return_filenames=True)
 
     # calculate pearson correlation, per test segment
