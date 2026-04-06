@@ -42,7 +42,9 @@ Install [R-clone](https://rclone.org/) and follow [the instructions to mount the
 > [!WARNING]
 > This path of working with the SparrKULee dataset is not supported anymore. It might still work, but we recommend follwing the steps above to mount the data instead.
 
-A version of dataset is hosted on the [KU Leuven RDR website](https://doi.org/10.48804/K3VSND) and is accessible through DOI ([https://doi.org/10.48804/K3VSND](https://doi.org/10.48804/K3VSND)).
+**We recommend accessing the dataset via our [website](https://homes.esat.kuleuven.be/~spchdata/corpora/auditory_eeg_data/), where we also share instructions to mount the dataset as an alternative to downloading.**
+
+The dataset is also hosted on the [KU Leuven RDR website](https://doi.org/10.48804/K3VSND) and is accessible through DOI ([https://doi.org/10.48804/K3VSND](https://doi.org/10.48804/K3VSND)).
 
 However, due to the dataset size/structure and the limitations of the UI of the KU Leuven RDR website, we also provide a [direct download link for the entire dataset in `.zip` format](https://rdr.kuleuven.be/api/access/dataset/:persistentId/?persistentId=doi:10.48804/K3VSND), a [onedrive repository containing then entire dataset split up into smaller files](https://kuleuven-my.sharepoint.com/:f:/g/personal/lies_bollens_kuleuven_be/EulH76nkcwxIuK--XJhLxKQBaX8_GgAX-rTKK7mskzmAZA?e=N6M5Ll) and a [tool to download (subsets of) the dataset robustly](download_code/README.md).
 For more information about the tool, see [download_code/README.md](download_code/README.md). 
