@@ -5,14 +5,14 @@ Code to make downloading of the dataset more convenient.
 
 You can download the full dataset in `.zip` format [from the KU Leuven RDR site by clicking this link.](https://rdr.kuleuven.be/api/access/dataset/:persistentId/?persistentId=doi:10.48804/K3VSND)
 
-If you want more control over what you download and don't want to fully restart when downloading fails, you can use [download_script.py](./download_script.py) to download the dataset.
+If you want more control over what you download and don't want to fully restart when downloading fails, you can use [download_script.py](download_script_from_rdr.py) to download the dataset.
 
-The code in [download_script.py](./download_script.py)  is meant to be used to download [the auditory EEG dataset from the RDR website](https://rdr.kuleuven.be/dataset.xhtml?persistentId=doi:10.48804/K3VSND), but can (possibly) be used to download other datasets from DataVerse servers.
+The code in [download_script.py](download_script_from_rdr.py)  is meant to be used to download [the auditory EEG dataset from the RDR website](https://rdr.kuleuven.be/dataset.xhtml?persistentId=doi:10.48804/K3VSND), but can (possibly) be used to download other datasets from DataVerse servers.
 
 # Usage
 
 ```bash
-python download_script.py --help
+python download_script_from_rdr.py --help
 ```
 
 ```text
