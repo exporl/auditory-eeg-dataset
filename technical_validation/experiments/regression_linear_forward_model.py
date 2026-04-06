@@ -1,19 +1,14 @@
 """Example experiment for a linear baseline method."""
 
-
-import sys
 import argparse
-
-
-import numpy as np
 import glob
 import json
-import logging
 import os
+
+import numpy as np
 import scipy.stats
 
-from technical_validation.util.dataset_generator import RegressionDataGenerator, create_tf_dataset
-
+from technical_validation.util.dataset_generator import RegressionDataGenerator
 
 
 def time_lag_matrix(input_, tmin, tmax):
@@ -113,11 +108,9 @@ def crossval_over_recordings(all_data, tmin, tmax, ridge_param):
             fold_scores.append(score)
     return fold_scores
 
-def training_loop(subject, data_folder, features, highpass, lowpass, tmin, tmax, ridge_param):
+def training_loop(subject, train_files, test_files, highpass, lowpass, tmin, tmax, ridge_param):
     print(f"Training model for subject {subject}")
 
-    train_files = [x for x in glob.glob(os.path.join(data_folder, "train_-_*")) if os.path.basename(x).split("_-_")[-1].split(".")[0] in features and subject in x]
-    train_files = [x for x in train_files if 'audiobook_15_' not in x]
     train_generator = RegressionDataGenerator(train_files, high_pass_freq=highpass, low_pass_freq=lowpass)
     all_data = [x for x in train_generator]
 
@@ -146,8 +139,6 @@ def training_loop(subject, data_folder, features, highpass, lowpass, tmin, tmax,
     model = train_model_cov(cxx, cxy, best_ridge)
 
     # # evaluate the model on the test set
-    test_files = [x for x in glob.glob(os.path.join(data_folder, "test_-_*")) if os.path.basename(x).split("_-_")[-1].split(".")[0] in features and subject in x]
-    test_files = [x for x in test_files if 'audiobook_15_' not in x]
     test_generator = RegressionDataGenerator(test_files, high_pass_freq=highpass, low_pass_freq=lowpass, return_filenames=True)
 
     # calculate pearson correlation, per test segment
@@ -178,6 +169,29 @@ def training_loop(subject, data_folder, features, highpass, lowpass, tmin, tmax,
 
     return test_info
 
+def main(results_folder, all_files, lowpass, highpass, features=['envelope', 'eeg'], tmin=-0.1 * 64, tmax=0.4 * 64):
+    tmin = np.round(tmin).astype(int)
+    tmax = np.round(tmax).astype(int)
+    ridge_param = [10 ** x for x in range(-6, 7, 2)]
+    overwrite = False
+    results_filename = 'eval_filter_{subject}_{tmin}_{tmax}_{highpass}_{lowpass}.json'
+    subjects = list(set([os.path.basename(x).split("_-_")[1] for x in all_files]))
+
+
+    # train one model per subject
+    for subject in subjects:
+        save_path = os.path.join(results_folder,results_filename.format(subject=subject, tmin=tmin, tmax=tmax, highpass=highpass, lowpass=lowpass))
+        if not os.path.exists(save_path) or overwrite:
+            train_files = [x for x in all_files if os.path.basename(x).startswith('train_-_') and os.path.basename(x).split("_-_")[-1].split(".")[0] in features and subject in x]
+            test_files = [x for x in all_files if os.path.basename(x).startswith('test_-_') and os.path.basename(x).split("_-_")[-1].split(".")[0] in features and subject in x]
+            result = training_loop(subject, train_files, test_files, highpass, lowpass, tmin, tmax, ridge_param)
+
+            # save the results
+            with open(save_path, 'w') as fp:
+                json.dump(result, fp)
+        else:
+            print(f"Results for {subject} already exist, skipping...")
+
 
 
 if __name__ == "__main__":
@@ -189,63 +203,41 @@ if __name__ == "__main__":
     # alpha (8 - 14)
     # beta (14 - 30)
     # broadband (0.5 - 32)
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--highpass', type=float, default=None)
-    parser.add_argument('--lowpass', type=float, default=4)
+    parser = argparse.ArgumentParser(description='Train and evaluate a linear forward model. If no highpass or lowpass frequency is specified, the model will be trained and evaluated on the following frequency bands: delta (0.5 -4 ), theta (4 - 8), alpha (8 - 14), beta (14 - 30), broadband (0.5 - 32).')
+    parser.add_argument('--highpass', type=float, default=None, help="Highpass frequency for filtering the EEG data. If not specified, no highpass filtering will be applied.")
+    parser.add_argument('--lowpass', type=float, default=None, help="Lowpass frequency for filtering the EEG data. If not specified, no lowpass filtering will be applied.")
+    parser.add_argument('--tmin', type=float, default=-0.1,
+                        help="Minimum of the integration window (in s)")
+    parser.add_argument('--tmax', type=float, default=0.4,
+                        help="Maximum of the integration window (in s)")
+
+    # Get the path to the config gile
+    experiments_folder = os.path.dirname(__file__)
+    main_folder = os.path.dirname(os.path.dirname(experiments_folder))
+    config_path = os.path.join(main_folder, 'config.json')
+
+    # Load the config
+    with open(config_path) as fp:
+        config = json.load(fp)
+
+    # Provide the path of the dataset
+    # which is split already to train, val, test
+    data_folder = os.path.join(config["dataset_folder"], config["derivatives_folder"],
+                               config["split_folder"])
+
+    # Create a directory to store (intermediate) results
+    results_folder = os.path.join(experiments_folder, "results_linear_backward")
+    os.makedirs(results_folder, exist_ok=True)
+
+    # Get all the files
+    all_files = glob.glob(os.path.join(data_folder, "*.npy"))
 
     args = parser.parse_args()
     highpass = args.highpass
     lowpass = args.lowpass
-
-    for highpass, lowpass in [(None, 4), (4, 8), (8, 14), (14, 30), (None, None)]:
-
-
-        numChannels = 64
-        tmin = -np.round(0.1*64).astype(int) # -100 ms
-        tmax = np.round(0.4*64).astype(int)  # 400 ms
-        ridge_param =  [10**x for x in range(-6, 7, 2)]
-        overwrite = False
-
-        results_filename = 'eval_filter_{subject}_{tmin}_{tmax}_{highpass}_{lowpass}.json'
-
-        # Get the path to the config gile
-        experiments_folder = os.path.dirname(__file__)
-        main_folder = os.path.dirname(os.path.dirname(experiments_folder))
-        config_path = os.path.join(main_folder, 'config.json')
-
-        # Load the config
-        with open(config_path) as fp:
-            config = json.load(fp)
-
-        # Provide the path of the dataset
-        # which is split already to train, val, test
-
-        data_folder = os.path.join(config["dataset_folder"], config["derivatives_folder"], config["split_folder"])
-        features = ["envelope", "eeg"]
-
-        # Create a directory to store (intermediate) results
-        results_folder = os.path.join(experiments_folder, "results_linear_forward")
-        os.makedirs(results_folder, exist_ok=True)
-
-
-        # get all the subjects
-        all_files = glob.glob(os.path.join(data_folder, "train_-_*"))
-        subjects = list(set([os.path.basename(x).split("_-_")[1] for x in all_files]))
-
-        evaluation_all_subs = {}
-        chance_level_all_subs = {}
-
-        # train one model per subject
-        for subject in subjects:
-            save_path = os.path.join(results_folder, results_filename.format(subject=subject, tmin=tmin, tmax=tmax, highpass=highpass, lowpass=lowpass))
-            if not os.path.exists(save_path) or overwrite:
-                result = training_loop(subject, data_folder, features, highpass, lowpass, tmin, tmax, ridge_param)
-
-                # save the results
-                with open(save_path, 'w') as fp:
-                    json.dump(result, fp)
-            else:
-                print(f"Results for {subject} already exist, skipping...")
+    bands = []
+    for highpass, lowpass in bands:
+        main(results_folder, all_files, highpass, lowpass, args.tmin, args.tmax, )
 
 
 

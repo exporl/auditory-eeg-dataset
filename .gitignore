@@ -247,3 +247,6 @@ technical_validation/experiments/figures/
 tests/test_classified/*
 # No .py in progress files
 *.py~
+
+sparrkulee/
+tests/test_output/

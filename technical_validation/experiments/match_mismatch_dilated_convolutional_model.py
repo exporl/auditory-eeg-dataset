@@ -6,11 +6,10 @@ import os
 os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
 os.environ['TF_XLA_FLAGS'] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
 import tensorflow as tf
-import sys
-
 
 from technical_validation.models.dilated_convolutional_model import dilation_model
-from technical_validation.util.dataset_generator import MatchMismatchDataGenerator, default_batch_equalizer_fn, create_tf_dataset
+from technical_validation.util.dataset_generator_tf import default_batch_equalizer_fn, \
+    create_tf_dataset, MatchMismatchDataGenerator
 
 
 def evaluate_model(model, test_dict):

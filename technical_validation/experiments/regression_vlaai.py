@@ -3,12 +3,12 @@ import glob
 import json
 import logging
 import os
-import tensorflow as tf
-import sys
 
+import tensorflow as tf
 
 from technical_validation.models.vlaai import vlaai, pearson_loss, pearson_metric
-from technical_validation.util.dataset_generator import RegressionDataGenerator, create_tf_dataset
+from technical_validation.util.dataset_generator import RegressionDataGenerator
+from technical_validation.util.dataset_generator_tf import create_tf_dataset
 
 
 def evaluate_model(model, test_dict):
