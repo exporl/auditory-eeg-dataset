@@ -5,6 +5,7 @@ import gzip
 import json
 import logging
 import os
+import sys
 from typing import Any, Dict, Sequence
 
 import librosa
@@ -294,6 +295,7 @@ def run_preprocessing_pipeline(
     preprocessed_stimuli_dir,
     preprocessed_eeg_dir,
     nb_processes=-1,
+    glob_patterns=None,
     overwrite=False,
     log_path="sparrKULee.log",
 ):
@@ -310,9 +312,12 @@ def run_preprocessing_pipeline(
     nb_processes: int
         The number of processes to use. If -1, the number of processes is
         automatically determined.
+    glob_patterns: Optional[List[str]]
+        The glob patterns to use to select the (EEG) data. If None, the default
+        pattern is used, which selects all BDF files in the eeg folders of the dataset.
     overwrite: bool
         Whether to overwrite existing files.
-    log_path: str
+    log_path: Optional[str]
         The path to the log file.
     """
     #########
@@ -324,7 +329,10 @@ def run_preprocessing_pipeline(
     ###########
     # LOGGING #
     ###########
-    handler = logging.FileHandler(log_path)
+    if log_path is not None:
+        handler = logging.FileHandler(log_path)
+    else:
+        handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(DefaultFormatter())
     default_logging(handlers=[handler])
@@ -332,9 +340,12 @@ def run_preprocessing_pipeline(
     ################
     # DATA LOADING #
     ################
+    if glob_patterns is None:
+        # Select all files
+        glob_patterns = os.path.join(root_dir, "sub-*", "*", "eeg", "*.bdf*")
     logging.info("Retrieving BIDS layout...")
     data_loader = GlobLoader(
-        [os.path.join(root_dir, "sub-*", "*", "eeg", "*.bdf*")],
+        glob_patterns,
         filter_fns=[lambda x: "restingState" not in x],
         key="data_path",
     )
@@ -423,19 +434,7 @@ if __name__ == "__main__":
     # A slight adaption of this code can also be found in the spaRRKULee repository:
     # https://github.com/exporl/auditory-eeg-dataset
     # under preprocessing_code/sparrKULee.py
-    # Load the config
-    with open("config.json", "r") as f:
-        config = json.load(f)
 
-    # Set the correct paths as default arguments
-    dataset_folder = config["dataset_folder"]
-    derivatives_folder = os.path.join(dataset_folder, config["derivatives_folder"])
-    preprocessed_stimuli_folder = os.path.join(
-        derivatives_folder, config["preprocessed_stimuli_folder"]
-    )
-    preprocessed_eeg_folder = os.path.join(
-        derivatives_folder, config["preprocessed_eeg_folder"]
-    )
     # Set the default log folder
     default_log_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -449,6 +448,9 @@ if __name__ == "__main__":
         "The default is to use all available cores (-1).",
     )
     parser.add_argument(
+        "--config", default='config.json', help="Path to the config file. Default: config.json. If none, all other arguments are required."
+    )
+    parser.add_argument(
         "--overwrite", action="store_true", help="Overwrite existing files"
     )
     parser.add_argument(
@@ -460,31 +462,57 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset_folder",
         type=str,
-        default=dataset_folder,
-        help="Path to the folder where the dataset is downloaded",
+        default=None,
+        help="Path to the folder where the dataset is downloaded/mounted",
+    )
+    parser.add_argument(
+        "--glob-patterns",
+        type=str,
+        default=None,
+        help="Glob pattern to select EEG data to preprocess"
     )
     parser.add_argument(
         "--preprocessed_stimuli_path",
         type=str,
-        default=preprocessed_stimuli_folder,
+        default=None,
         help="Path to the folder where the preprocessed stimuli will be saved",
     )
     parser.add_argument(
         "--preprocessed_eeg_path",
         type=str,
-        default=preprocessed_eeg_folder,
+        default=None,
         help="Path to the folder where the preprocessed EEG will be saved",
     )
     args = parser.parse_args()
 
+    if args.config is not None:
+        # Load the config
+        with open(args.config, "r") as f:
+            config = json.load(f)
+        # Set the correct paths as default arguments
+        dataset_folder = config["dataset_folder"]
+        derivatives_folder = os.path.join(dataset_folder, config["derivatives_folder"])
+        preprocessed_stimuli_folder = os.path.join(derivatives_folder, config["preprocessed_stimuli_folder"])
+        preprocessed_eeg_folder = os.path.join(derivatives_folder, config["preprocessed_eeg_folder"] )
+    else:
+        dataset_folder = args.dataset_folder
+        derivatives_folder = args.derivatives_folder
+        preprocessed_stimuli_folder = args.preprocessed_stimuli_folder
+        preprocessed_eeg_folder = args.preprocessed_eeg_folder
+        # If any of the above are none, throw error
+        if dataset_folder is None or preprocessed_stimuli_folder is None or preprocessed_eeg_folder is None:
+            raise ValueError("If no config file is provided, all of the following arguments are required: --dataset_folder, --preprocessed_stimuli_path, --preprocessed_eeg_path")
+
+
     # Run the preprocessing pipeline
     run_preprocessing_pipeline(
-        args.dataset_folder,
-        args.preprocessed_stimuli_path,
-        args.preprocessed_eeg_path,
-        args.nb_processes,
-        args.overwrite,
-        args.log_path.format(
+        root_dir=dataset_folder,
+        preprocessed_stimuli_dir=preprocessed_stimuli_folder,
+        preprocessed_eeg_dir=preprocessed_eeg_folder,
+        nb_processes=args.nb_processes,
+        glob_patterns=args.glob_patterns,
+        overwrite=args.overwrite,
+        log_path=args.log_path.format(
             datetime=datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         ),
     )
